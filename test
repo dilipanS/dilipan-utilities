@@ -1,29 +1,17 @@
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.web.client.RestTemplate;
-
-@Bean
-    public RestTemplate insecureRestTemplate() throws Exception {
-
-        // Trust manager that does NOT validate certificate chains
-        TrustManager[] trustAllCerts = new TrustManager[]{
-            new X509TrustManager() {
-                public void checkClientTrusted(X509Certificate[] xcs, String authType) {}
-                public void checkServerTrusted(X509Certificate[] xcs, String authType) {}
-                public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
-            }
-        };
-SSLContext sslContext = SSLContext.getInstance("TLS");
-        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-        SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(
-                sslContext, (hostname, session) -> true); // disable hostname verification
+TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+        SSLContext sslContext = SSLContexts.custom()
+                .loadTrustMaterial(null, acceptingTrustStrategy)
+                .build();
+        TlsStrategy tlsStrategy = new DefaultClientTlsStrategy(
+                sslContext,
+                NoopHostnameVerifier.INSTANCE);
+        PoolingHttpClientConnectionManager connectionManager =
+                PoolingHttpClientConnectionManagerBuilder.create()
+                        .setTlsStrategy(tlsStrategy)
+                        .build();
         CloseableHttpClient httpClient = HttpClients.custom()
-                .setSSLSocketFactory(csf)
+                .setConnectionManager(connectionManager)
                 .build();
         HttpComponentsClientHttpRequestFactory requestFactory =
-                new HttpComponentsClientHttpRequestFactory();
-        requestFactory.setHttpClient(httpClient);
+                new HttpComponentsClientHttpRequestFactory(httpClient);
         return new RestTemplate(requestFactory);
-    }
