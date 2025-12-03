@@ -1,3 +1,8 @@
+private final WebClient webClient;
+
+    public ExternalJwtValidationFilter(WebClient.Builder builder) {
+        this.webClient = builder.build();
+    }
 try {
             validationResponse = webClient.post()
                     .uri("http://auth-service/api/validate")
