@@ -38,3 +38,16 @@ if (validationResponse == null || !validationResponse.isValid()) {
             response.getWriter().write("Invalid Token");
             return;
         }
+UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(
+                        validationResponse.getUsername(),
+                        null,
+                        validationResponse.getAuthorities()  // roles from auth service
+                );
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        // 4) Continue filter chain
+        filterChain.doFilter(request, response);
+    }
+}
