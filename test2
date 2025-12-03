@@ -1,0 +1,12 @@
+try {
+            validationResponse = webClient.post()
+                    .uri("http://auth-service/api/validate")
+                    .header("Authorization", "Bearer " + token)
+                    .retrieve()
+                    .bodyToMono(AuthValidationResponse.class)
+                    .block(); // safe here, because filter is blocking
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token validation failed");
+            return;
+        }
