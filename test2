@@ -32,3 +32,9 @@ try {
             response.getWriter().write("Token validation failed");
             return;
         }
+
+if (validationResponse == null || !validationResponse.isValid()) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Invalid Token");
+            return;
+        }
