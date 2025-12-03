@@ -1,1 +1,11 @@
-123
+@Bean
+    public RestTemplate insecureRestTemplate() throws Exception {
+
+        // Trust manager that does NOT validate certificate chains
+        TrustManager[] trustAllCerts = new TrustManager[]{
+            new X509TrustManager() {
+                public void checkClientTrusted(X509Certificate[] xcs, String authType) {}
+                public void checkServerTrusted(X509Certificate[] xcs, String authType) {}
+                public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
+            }
+        };
