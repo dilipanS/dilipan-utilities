@@ -9,3 +9,15 @@
                 public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
             }
         };
+SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+        SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(
+                sslContext, (hostname, session) -> true); // disable hostname verification
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setSSLSocketFactory(csf)
+                .build();
+        HttpComponentsClientHttpRequestFactory requestFactory =
+                new HttpComponentsClientHttpRequestFactory();
+        requestFactory.setHttpClient(httpClient);
+        return new RestTemplate(requestFactory);
+    }
