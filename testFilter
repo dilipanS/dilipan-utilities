@@ -38,4 +38,19 @@ private MockHttpServletRequest requestWithHeaders(String jwt, String user, Strin
         Mockito.verify(filterChain, Mockito.times(1))
                .doFilter(request, response);
     }
+@Test
+    void testValidationApiException_Unauthorized() throws Exception {
+        MockHttpServletRequest request = requestWithHeaders("abc.jwt.token", null, null);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        Mockito.when(restTemplate.exchange(
+                Mockito.anyString(),
+                Mockito.eq(HttpMethod.POST),
+                Mockito.any(),
+                Mockito.eq(AuthValidationResponse.class)
+        )).thenThrow(new RuntimeException("Service down"));
+        filter.doFilter(request, response, filterChain);
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
+        assertTrue(response.getContentAsString().contains(ApiMetricsConstants.TOKEN_VALIDATION_FAILED));
+        Mockito.verify(filterChain, Mockito.never()).doFilter(request, response);
+    }
 }
