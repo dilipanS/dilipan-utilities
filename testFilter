@@ -10,4 +10,11 @@ class ExternalJwtValidationFilterTest {
         filter = new ExternalJwtValidationFilter(restTemplate);
         ReflectionTestUtils.setField(filter, "jdbcAuthenticationUrl", "http://dummy/validate");
     }
+private MockHttpServletRequest requestWithHeaders(String jwt, String user, String secure) {
+        MockHttpServletRequest req = new MockHttpServletRequest();
+        if (jwt != null) req.addHeader(ApiMetricsConstants.JWT_TOKEN, jwt);
+        if (user != null) req.addHeader(ApiMetricsConstants.USER_NAME, user);
+        if (secure != null) req.addHeader(ApiMetricsConstants.SECURE, secure);
+        return req;
+    }
 }
