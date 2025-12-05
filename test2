@@ -54,5 +54,12 @@ class ExternalJwtValidationFilterTest {
 
         Mockito.verify(filterChain, Mockito.never()).doFilter(request, response);
     }
-    
+    @Test
+    void testNoHeaders_filterContinues() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request, response, filterChain);
+        Mockito.verify(filterChain, Mockito.times(1))
+               .doFilter(request, response);
+    }
 }
