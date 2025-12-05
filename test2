@@ -1,1 +1,54 @@
+@SpringBootTest
+@AutoConfigureMockMvc
+@Import(SecurityConfiguration.class)
+class SecurityConfigurationTest {
+    @MockBean
+    ExternalJwtValidationFilter jwtFilter;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private SecurityFilterChain securityFilterChain;
+    @Test
+    void testCsrfIsDisabled() {
+        assertInstanceOf(CsrfTokenRequestAttributeHandler.class,
+                ((HttpSecurity) ReflectionTestUtils.getField(securityFilterChain, "securityBuilder"))
+                        .getSharedObject(CsrfTokenRequestAttributeHandler.class));
+    }
+    @Test
+    void testPermitAllEndpoints() throws Exception {
+        mockMvc.perform(get("/actuator/health/liveness"))
+                .andExpect(status().isOk());
 
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk());
+    }
+    @Test
+    void testOlympusApiIsPermitAll() throws Exception {
+        mockMvc.perform(get("/olympus/api/test"))
+                .andExpect(status().isOk());
+    }
+    @Test
+    void testOtherEndpointsRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/some/protected"))
+                .andExpect(status().isUnauthorized());
+    }
+    @Test
+    void testJwtFilterAddedBeforeUsernamePasswordFilter() {
+        List<Filter> filters = ((FilterChainProxy) securityFilterChain).getFilters("/test");
+
+        int jwtIndex = -1;
+        int usernameFilterIndex = -1;
+
+        for (int i = 0; i < filters.size(); i++) {
+            if (filters.get(i) instanceof ExternalJwtValidationFilter) {
+                jwtIndex = i;
+            }
+            if (filters.get(i) instanceof UsernamePasswordAuthenticationFilter) {
+                usernameFilterIndex = i;
+            }
+        }
+
+        assertTrue(jwtIndex != -1 && usernameFilterIndex != -1);
+        assertTrue(jwtIndex < usernameFilterIndex, "JWT filter must run before UsernamePasswordAuthenticationFilter");
+    }
+}
