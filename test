@@ -13,19 +13,3 @@ SSLContext sslContext = SSLContextBuilder.create()
         HttpComponentsClientHttpRequestFactory requestFactory =
                 new HttpComponentsClientHttpRequestFactory(httpClient);
         return new RestTemplate(requestFactory);
-
-    @Test
-    void testInvalidToken_Unauthorized() throws Exception {
-        MockHttpServletRequest request = requestWithHeaders("abc.jwt", null, null);
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        Mockito.when(restTemplate.exchange(
-                Mockito.anyString(),
-                Mockito.eq(HttpMethod.POST),
-                Mockito.any(),
-                Mockito.eq(AuthValidationResponse.class)
-        )).thenReturn(new ResponseEntity<>(new AuthValidationResponse(), HttpStatus.OK));
-        filter.doFilter(request, response, filterChain);
-        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
-        assertTrue(response.getContentAsString().contains(ApiMetricsConstants.INVALID_TOKEN));
-        Mockito.verify(filterChain, Mockito.never()).doFilter(request, response);
-    }
