@@ -1,1 +1,13 @@
-123
+@ExtendWith(MockitoExtension.class)
+class ExternalJwtValidationFilterTest {
+    @Mock
+    RestTemplate restTemplate;
+    @Mock
+    FilterChain filterChain;
+    ExternalJwtValidationFilter filter;
+    @BeforeEach
+    void setup() {
+        filter = new ExternalJwtValidationFilter(restTemplate);
+        ReflectionTestUtils.setField(filter, "jdbcAuthenticationUrl", "http://dummy/validate");
+    }
+}
