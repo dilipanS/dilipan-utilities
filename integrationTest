@@ -1,0 +1,68 @@
+package com.citi.olympus.metrics.controller;
+
+import com.citi.olympus.metrics.dto.OlympusOccDto;
+import com.citi.olympus.metrics.entity.OlympusOcc;
+import com.citi.olympus.metrics.service.OlympusOccService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(OlympusOccController.class)
+class OlympusOccControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @MockitoBean
+    private OlympusOccService olympusOccService;
+
+    @Test
+    void getLatestOlympusOcc_returnsDto() throws Exception {
+        OlympusOccDto dto = new OlympusOccDto();
+        dto.setId(1L);
+        dto.setStatus("OK");
+
+        Mockito.when(olympusOccService.readLatestOlympusOcc())
+               .thenReturn(dto);
+
+        mockMvc.perform(get("/occ/data/readLatest"))
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.id").value(1L))
+               .andExpect(jsonPath("$.status").value("OK"));
+    }
+
+    @Test
+    void createOlympusOcc_persistsAndReturnsDto() throws Exception {
+        OlympusOcc input = new OlympusOcc();
+        input.setSomeField("value");
+
+        OlympusOccDto responseDto = new OlympusOccDto();
+        responseDto.setId(10L);
+        responseDto.setStatus("CREATED");
+
+        Mockito.when(olympusOccService.createOlympusOcc(any(OlympusOcc.class)))
+               .thenReturn(responseDto);
+
+        mockMvc.perform(post("/occ/data/write")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(input)))
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.id").value(10L))
+               .andExpect(jsonPath("$.status").value("CREATED"));
+    }
+}
