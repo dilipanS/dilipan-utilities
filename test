@@ -1,66 +1,198 @@
-SSLContext sslContext = SSLContextBuilder.create()
-                .loadTrustMaterial(new TrustAllStrategy())  // Trust all certs
-                .build();
-        var tlsStrategy = ClientTlsStrategyBuilder.create()
-                .setSslContext(sslContext)
-                .build();
-        var connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-                .setTlsStrategy(tlsStrategy)
-                .build();
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .setConnectionManager(connectionManager)
-                .build();
-        HttpComponentsClientHttpRequestFactory requestFactory =
-                new HttpComponentsClientHttpRequestFactory(httpClient);
-        return new RestTemplate(requestFactory);
-package com.citi.olympus.config;
+# Trunk-Based Development (TBD) Strategy using GitHub
 
-import org.apache.hc.client5.http.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import javax.net.ssl.SSLContext;
-import static org.assertj.core.api.Assertions.assertThat;
-@SpringBootTest
-@ActiveProfiles("local")
-class RestTemplateConfigTest {
-    @Autowired
-    private RestTemplate restTemplate;
-    @Autowired
-    private RestTemplate restTemplateLocal;
-    @Autowired
-    private RestTemplateConfig config;
-    @Test
-    void testDefaultRestTemplateBeanExists() {
-        assertThat(restTemplate).isNotNull();
-        assertThat(restTemplate.getRequestFactory()).isNotInstanceOf(HttpComponentsClientHttpRequestFactory.class);
-    }
-    @Test
-    void testCustomSslRestTemplateBeanExists() {
-        assertThat(restTemplateLocal).isNotNull();
-        assertThat(restTemplateLocal.getRequestFactory())
-                .isInstanceOf(HttpComponentsClientHttpRequestFactory.class);
-    }
-    @Test
-    void testSslRestTemplateUsesTrustAllStrategy() throws Exception {
-        RestTemplate rt = config.restTemplateLocal();
+## 1. Purpose
 
-        HttpComponentsClientHttpRequestFactory factory =
-                (HttpComponentsClientHttpRequestFactory) rt.getRequestFactory();
+This document defines the **Trunk-Based Development (TBD)** strategy for our engineering teams using **GitHub**. The goal is to improve deployment frequency, reduce merge conflicts, ensure continuous integration, and keep the codebase in a **deployable state at all times**.
 
-        CloseableHttpClient httpClient = (CloseableHttpClient) factory.getHttpClient();
+---
 
-        assertThat(httpClient).isNotNull();
-    }
-    @Test
-    void testBothBeansAreDifferent() {
-        assertThat(restTemplate).isNotSameAs(restTemplateLocal);
-    }
-}
+## 2. What is Trunk-Based Development?
+
+Trunk-Based Development is a source control branching model where:
+
+* Developers collaborate on a **single shared branch** (called `main` or `trunk`)
+* Feature branches are **short-lived** (hours to 1–2 days)
+* Code is merged into trunk frequently
+* Incomplete work is protected using **feature flags**
+
+**Core Principle:**
+
+> The trunk must always be stable, tested, and ready for release.
+
+---
+
+## 3. Branching Strategy (GitHub)
+
+### 3.1 Primary Branch
+
+* `main` (or `trunk`)
+* Always production-ready
+* Protected branch (no direct pushes)
+
+### 3.2 Short-Lived Feature Branches
+
+* Created from `main`
+* Naming convention:
+
+  ```
+  feature/<short-description>
+  bugfix/<issue-id>
+  hotfix/<issue-id>
+  ```
+* Lifetime: **same day or max 1–2 days**
+* Deleted immediately after merge
+
+❌ No long-running branches (e.g., `feature/big-refactor` for weeks)
+
+---
+
+## 4. GitHub Branch Protection Rules
+
+The following rules must be enabled for the `main` branch:
+
+* Require pull request before merging
+* Require status checks to pass before merging
+
+  * Build
+  * Unit tests
+  * Static code analysis
+* Require at least **1 reviewer**
+* Restrict direct pushes
+* Enforce linear history (recommended)
+
+---
+
+## 5. Pull Request Guidelines
+
+### 5.1 PR Size and Scope
+
+* Small, focused PRs (ideally < 300 lines changed)
+* One logical change per PR
+* Large changes must be split into multiple PRs
+
+### 5.2 Review Expectations
+
+* Reviews should be completed quickly (same day if possible)
+* Focus on:
+
+  * Correctness
+  * Safety
+  * Tests
+  * Backward compatibility
+* Avoid style debates (handled via linters)
+
+---
+
+## 6. Feature Flags Strategy
+
+### 6.1 Why Feature Flags
+
+Feature flags allow merging incomplete or risky code into trunk without exposing it to users.
+
+### 6.2 When to Use Feature Flags
+
+* New features
+* API behavior changes
+* Database migrations
+* Risky refactors
+
+### 6.3 Implementation Guidelines
+
+* Flags must default to **OFF**
+* Flags should be configurable via:
+
+  * Config Server / Environment variables
+  * Feature flag service (if available)
+* Flags must be **removed after release**
+
+---
+
+## 7. Continuous Integration (CI)
+
+### 7.1 Mandatory CI Pipeline
+
+Every pull request must pass:
+
+* Code compilation
+* Unit tests
+* Static analysis
+* Fast integration tests
+
+### 7.2 CI Expectations
+
+* CI should complete quickly
+* Broken builds on `main` are **top priority incidents**
+* Fix-forward approach preferred over revert
+
+---
+
+## 8. Database Change Strategy
+
+Database changes must be backward compatible.
+
+### 8.1 Safe Migration Pattern
+
+1. Add new schema elements (columns/tables)
+2. Write to both old and new schema
+3. Migrate existing data
+4. Switch reads to new schema
+5. Remove old schema in a later release
+
+❌ Never deploy breaking DB changes with incompatible code
+
+---
+
+## 9. Release & Deployment Model
+
+* Every commit to `main` is release-ready
+* Deployment can happen anytime
+* Feature flags decouple deployment from feature release
+* Supports:
+
+  * Continuous Delivery
+  * Blue-Green deployments
+  * Canary releases
+
+---
+
+## 10. Responsibilities
+
+### Developers
+
+* Merge to trunk frequently
+* Keep changes small
+* Write automated tests
+* Use feature flags responsibly
+
+### Reviewers
+
+* Provide fast and focused reviews
+* Ensure trunk safety
+
+### Team
+
+* Treat trunk stability as shared responsibility
+* Fix broken builds immediately
+
+---
+
+## 11. Benefits of This Approach
+
+* Faster delivery of features
+* Reduced merge conflicts
+* Higher code quality
+* Improved team collaboration
+* Continuous readiness for production releases
+
+---
+
+## 12. Summary
+
+Trunk-Based Development with GitHub enables fast, safe, and scalable software delivery when supported by:
+
+* Strong CI
+* Feature flags
+* Small, frequent merges
+* Team discipline and ownership
+
+This strategy is recommended for modern agile and DevOps-driven teams.
